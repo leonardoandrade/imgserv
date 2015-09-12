@@ -5,7 +5,6 @@ import (
 	"os"
 )
 
-
 var hex_chars = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
 
 func usage() {
@@ -21,7 +20,7 @@ func check_emptyness(directory string) error {
 
 /*
 * Create empty directory with subfolder structure and default configuration.
-*/
+ */
 func main() {
 
 	if len(os.Args) != 2 {
@@ -46,8 +45,8 @@ func main() {
 		}
 	}
 
-  configFilePath := directory + "/config.json"
+	configFilePath := directory + "/config.json"
 	config := MakeDefaultConfig(directory)
 	config.WriteToFile(configFilePath)
-  fmt.Printf("Directories and '"+configFilePath+"' config file created with success. \n")
+	fmt.Printf("Directories and '" + configFilePath + "' config file created with success. \n")
 }
