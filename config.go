@@ -8,18 +8,28 @@ import (
 type Config struct {
 	Directory      string   `json:"directory"`
 	SupportedTypes []string `json:"supportedTypes"`
+	SupportedSizes []string `json:"supportedSizes"`
 }
 
 func MakeDefaultConfig(directory string) Config {
 	ret := Config{}
 	ret.Directory = directory
 	ret.SupportedTypes = []string{"png", "jpg"}
+	ret.SupportedSizes = []string{"200x200", "300x300"}
 	return ret
 }
 
 func ConfigFromFile(filePath string) (Config, error) {
-	//TODO
-	return Config{}, nil
+	jsonContent, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return  Config{}, err
+	}
+	var config Config
+	err = json.Unmarshal(jsonContent, &config)
+	if err != nil {
+		return Config{}, err
+	}
+	return config, nil
 }
 
 func (c *Config) WriteToFile(filePath string) error {
