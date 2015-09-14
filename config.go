@@ -19,10 +19,10 @@ func MakeDefaultConfig(directory string) Config {
 	return ret
 }
 
-func ConfigFromFile(filePath string) (Config, error) {
+func MakeConfigFromFile(filePath string) (Config, error) {
 	jsonContent, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return  Config{}, err
+		return Config{}, err
 	}
 	var config Config
 	err = json.Unmarshal(jsonContent, &config)
