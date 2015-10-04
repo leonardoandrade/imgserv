@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -14,28 +13,9 @@ const (
 	PORT int = 8888
 )
 
-type Server struct {
-	Config Config
-	Cache  map[string]bool
-}
-
-type ServerStatus struct {
-	Config    Config `json:"config"`
-	CacheSize int    `json:"cache_size"`
-}
-
-func MakeServer(directory string) Server {
-	cache := make(map[string]bool)
-	config, err := MakeConfigFromFile(directory + "/config.json")
-	if err != nil {
-		panic(err)
-	}
-	return Server{config, cache}
-}
-
-func status(server Server) func(http.ResponseWriter, *http.Request) {
+func status(repository Repository) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		statusJson, err := json.MarshalIndent(server.GetStatus(), "", "\t")
+		statusJson, err := json.MarshalIndent(repository.Status(), "", "\t")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -45,29 +25,43 @@ func status(server Server) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func (s *Server) GetStatus() ServerStatus {
-	return ServerStatus{s.Config, len(s.Cache)}
+func download(repository Repository) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("guid: %s, width: %s", r.FormValue("guid"), r.FormValue("w"))
+
+		imgBytes, err := repository.getImage(r.FormValue("guid"), r.FormValue("w"))
+		if err != nil {
+			panic(err)
+		}
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Length", strconv.Itoa(len(imgBytes)))
+		if _, err := w.Write(imgBytes); err != nil {
+			log.Println("unable to write image.")
+		}
+
+
+	}
 }
 
-func upload(w http.ResponseWriter, r *http.Request) {
-	log.Print("'" + r.URL.Path + "' called")
-	fmt.Printf("Request: %v\n", r)
-	fn, header, _ := r.FormFile("datafile")
-	defer fn.Close()
+func upload(repository Repository) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Print("'" + r.URL.Path + "' called")
+		fmt.Printf("Request: %v\n", r)
+		fn, header, err := r.FormFile("datafile")
+		if err != nil {
+			fmt.Printf("error %v\n",err)
+		}
+		if fn == nil || header == nil {
+			fmt.Printf("request is not multipart")
+			return
+		}
 
-	f, _ := os.Create("/tmp/" + header.Filename)
-	defer f.Close()
-
-	io.Copy(f, fn)
-	//fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+		id, err := repository.saveImage(header.Filename, &fn)
+		fmt.Printf("id: %s err: %s", id, err)
+	}
 }
 
-func config(w http.ResponseWriter, r *http.Request) {
-	log.Print("'" + r.URL.Path + "' called")
-	//fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-}
-
-func usage() {
+func imgserv_usage() {
 	fmt.Printf("Launch image server. The only parameter is the directory.\n")
 	fmt.Printf("Usage:\n")
 	fmt.Printf("imgserv <directory>")
@@ -75,13 +69,15 @@ func usage() {
 
 func main() {
 	if len(os.Args) != 2 {
-		usage()
+		imgserv_usage()
 		os.Exit(0)
 	}
-	server := MakeServer(os.Args[1])
+	repository := MakeRepository(os.Args[1])
 
-	http.HandleFunc("/status", status(server))
+	http.HandleFunc("/status", status(repository))
+	http.HandleFunc("/d/", download(repository))
+	http.HandleFunc("/u", upload(repository))
+
 	fmt.Printf("Serving image directory '%s' on port '%d'\n", os.Args[1], PORT)
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(PORT), nil))
-
 }

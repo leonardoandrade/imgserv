@@ -6,23 +6,21 @@ import (
 )
 
 type Config struct {
-	Directory      string   `json:"directory"`
 	SupportedTypes []string `json:"supportedTypes"`
-	SupportedSizes []string `json:"supportedSizes"`
+	SupportedResizes []int `json:"supportedResizes"`
 }
 
 func MakeDefaultConfig(directory string) Config {
 	ret := Config{}
-	ret.Directory = directory
 	ret.SupportedTypes = []string{"png", "jpg"}
-	ret.SupportedSizes = []string{"200x200", "300x300"}
+	ret.SupportedResizes = []int{50, 33, 20}
 	return ret
 }
 
 func MakeConfigFromFile(filePath string) (Config, error) {
 	jsonContent, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return Config{}, err
+		return  Config{}, err
 	}
 	var config Config
 	err = json.Unmarshal(jsonContent, &config)

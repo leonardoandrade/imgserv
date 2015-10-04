@@ -2,11 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"mime/multipart"
+	"github.com/gographics/imagick"
+	"fmt"
 	"os"
+	"io"
+	//"image"
 )
 
 var hex_chars = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
@@ -37,6 +40,16 @@ func MakeRepository(directory string) Repository {
 	return Repository{directory, config, cache}
 }
 
+func (r *Repository) getImage(guid, width string) ([]byte, error) {
+
+	filePath := r.directory+"/"+string(guid[0])+"/"+string(guid[1])+"/"+guid+"/original.png"
+	b, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
 func (r *Repository) makeGuid() string {
 	var ret []byte = make([]byte, 32)
 	for i := 0; i < 32; i++ {
@@ -51,11 +64,35 @@ func (r *Repository) Status() RepositoryStatus {
 
 type Metadata struct {
 	original_filename string  `json:"originalFilename"`
+	original_size []int `json:"originalSize"`
 	coordinates       *[2]int `json:"coordinates"`
 }
 
 func check_directory_emptyness(directory string) error {
 	//TODO
+	return nil
+}
+
+func (r *Repository) processAndSaveImage(imageRoot string, blob []byte) (error) {
+	fmt.Printf("xxxxx%d\n",len(blob))
+
+	imagick.Initialize()
+	defer imagick.Terminate()
+
+	mw := imagick.NewMagickWand()
+	//err := mw.ReadImageBlob(blob)
+	err := mw.ReadImage(imageRoot+"/original.png")
+	if err != nil {
+		fmt.Printf("image not valid")
+	}
+	w := mw.GetImageWidth()
+	h := mw.GetImageHeight()
+
+	fmt.Printf("width: %d, height: %d\n",w, h)
+	fmt.Printf("format: %s\n", mw.GetFormat())
+
+	defer mw.Destroy()
+
 	return nil
 }
 
@@ -66,10 +103,13 @@ func (r *Repository) saveImage(filename string, content *multipart.File) (string
 	imageRoot := r.directory + "/" + string(randName[0]) + "/" + string(randName[1]) + "/" + randName
 	os.MkdirAll(imageRoot, 0755)
 	f, _ := os.Create(imageRoot + "/original.png")
-	defer f.Close()
 	io.Copy(f, (*content))
+	f.Close()
 
-	metadata := FileMetadata{filename, nil}
+	var blob = make([]byte, 100000)
+	(*content).Read(blob)
+	r.processAndSaveImage(imageRoot, blob)
+	metadata := FileMetadata{filename, &[2]int{0, 0}}
 	jsonBytes, err := json.MarshalIndent(metadata, "", "\t")
 	if err != nil {
 		return "", err
