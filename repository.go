@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"io/ioutil"
 	"math/rand"
 	"mime/multipart"
-	"github.com/gographics/imagick"
-	"fmt"
+	//"github.com/gographics/imagick"
+	//"fmt"
 	"os"
 	"io"
-	//"image"
+	"image"
+	"image/jpeg"
+	"github.com/nfnt/resize"
+	"bytes"
 )
 
 var hex_chars = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
@@ -40,14 +44,28 @@ func MakeRepository(directory string) Repository {
 	return Repository{directory, config, cache}
 }
 
-func (r *Repository) getImage(guid, width string) ([]byte, error) {
+func (r *Repository) getImage(guid string, witdh uint) ([]byte, error) {
 
 	filePath := r.directory+"/"+string(guid[0])+"/"+string(guid[1])+"/"+guid+"/original.png"
-	b, err := ioutil.ReadFile(filePath)
+	f, err := os.Open(filePath);
+	//b, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
-	return b, nil
+
+	var img image.Image
+	img, _, err = image.Decode(bufio.NewReader(f));
+	if err != nil {
+		return nil, err
+	}
+	imgRet := resize.Thumbnail(witdh, 10000, img, resize.Lanczos3)
+
+	var b bytes.Buffer
+	foo := bufio.NewWriter(&b)
+
+	jpeg.Encode(foo, imgRet,nil)
+
+	return b.Bytes(), nil
 }
 
 func (r *Repository) makeGuid() string {
@@ -73,29 +91,6 @@ func check_directory_emptyness(directory string) error {
 	return nil
 }
 
-func (r *Repository) processAndSaveImage(imageRoot string, blob []byte) (error) {
-	fmt.Printf("xxxxx%d\n",len(blob))
-
-	imagick.Initialize()
-	defer imagick.Terminate()
-
-	mw := imagick.NewMagickWand()
-	//err := mw.ReadImageBlob(blob)
-	err := mw.ReadImage(imageRoot+"/original.png")
-	if err != nil {
-		fmt.Printf("image not valid")
-	}
-	w := mw.GetImageWidth()
-	h := mw.GetImageHeight()
-
-	fmt.Printf("width: %d, height: %d\n",w, h)
-	fmt.Printf("format: %s\n", mw.GetFormat())
-
-	defer mw.Destroy()
-
-	return nil
-}
-
 func (r *Repository) saveImage(filename string, content *multipart.File) (string, error) {
 	randName := r.makeGuid()
 
@@ -103,12 +98,9 @@ func (r *Repository) saveImage(filename string, content *multipart.File) (string
 	imageRoot := r.directory + "/" + string(randName[0]) + "/" + string(randName[1]) + "/" + randName
 	os.MkdirAll(imageRoot, 0755)
 	f, _ := os.Create(imageRoot + "/original.png")
+	defer f.Close()
 	io.Copy(f, (*content))
-	f.Close()
 
-	var blob = make([]byte, 100000)
-	(*content).Read(blob)
-	r.processAndSaveImage(imageRoot, blob)
 	metadata := FileMetadata{filename, &[2]int{0, 0}}
 	jsonBytes, err := json.MarshalIndent(metadata, "", "\t")
 	if err != nil {

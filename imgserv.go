@@ -29,7 +29,12 @@ func download(repository Repository) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("guid: %s, width: %s", r.FormValue("guid"), r.FormValue("w"))
 
-		imgBytes, err := repository.getImage(r.FormValue("guid"), r.FormValue("w"))
+		width, err := strconv.Atoi(r.FormValue("w"))
+		if err != nil {
+			panic(err)
+		}
+		imgBytes, err := repository.getImage(r.FormValue("guid"), uint	(width))
+
 		if err != nil {
 			panic(err)
 		}

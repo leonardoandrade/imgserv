@@ -5,17 +5,10 @@ import (
 	"os"
 )
 
-var hex_chars = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
-
 func usage() {
 	fmt.Printf("Initialize a directory with sub-directory tree and default configuration file. Must be empty.\n")
 	fmt.Printf("Usage:\n")
 	fmt.Printf("init <directory>")
-}
-
-func check_emptyness(directory string) error {
-	//TODO
-	return nil
 }
 
 /*
@@ -30,7 +23,7 @@ func main() {
 	directory := os.Args[1]
 	fmt.Printf("Creating directory structure in '%s' for image server.\n", directory)
 
-	if nil != check_emptyness(directory) {
+	if nil != check_directory_emptyness(directory) {
 		//TODO
 		os.Exit(0)
 	}
