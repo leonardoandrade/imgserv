@@ -23,8 +23,8 @@ func main() {
 	directory := os.Args[1]
 	fmt.Printf("Creating directory structure in '%s' for image server.\n", directory)
 
-	if nil != check_directory_emptyness(directory) {
-		//TODO
+	if !check_directory_existence_and_emptiness(directory) {
+		fmt.Printf("ERROR: directory '"+directory+"' does not exist or is not empty.\n")
 		os.Exit(0)
 	}
 	for i := 0; i < len(hex_chars); i++ {
