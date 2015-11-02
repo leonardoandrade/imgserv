@@ -33,12 +33,12 @@ func download(repository Repository) func(http.ResponseWriter, *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		imgBytes, err := repository.getImage(r.FormValue("guid"), uint	(width))
+		imgBytes, extension, err := repository.getImage(r.FormValue("guid"), uint	(width))
 
 		if err != nil {
 			panic(err)
 		}
-		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Content-Type", "image/"+extension)
 		w.Header().Set("Content-Length", strconv.Itoa(len(imgBytes)))
 		if _, err := w.Write(imgBytes); err != nil {
 			log.Println("unable to write image.")
