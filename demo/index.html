@@ -1,0 +1,27 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>File upload demo</title>
+    <script src="imgserv.js" type="text/javascript"></script>
+</head>
+<body>
+<h1>Imgserver demo</h1>
+<img id="myImage" src="whitepixel.png" alt="default picture" width="300" height="200" style="border-style:solid">
+<br>
+<br>
+<form id="myForm">
+    <input type="submit" value="Upload!">
+</form>
+</body>
+<script>
+    var imgUploader = new ImageUploader();
+    imgUploader.bootstrap({
+        image: "myImage",
+        form: "myForm",
+        onSuccess: function(imgId) {
+            console.log("uploaded image, with ID='"+imgId+"'")
+
+        });
+    });
+</script>
+</html>
